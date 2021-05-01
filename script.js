@@ -2,14 +2,117 @@
 
 const img = new Image(); // used to load image from <input> and draw to canvas
 
-// Fires whenever the img object loads a new image (such as with img.src =)
-img.addEventListener('load', () => {
-  // TODO
+var fileInput = document.querySelector('input[type="file"]');
+var canvas = document.getElementById("user-image");
+var ctx = canvas.getContext("2d");
+var form = document.getElementById("generate-meme");
+var submit = form.elements[3];
+var reset = form.elements[4];
+var read = form.elements[5];
+var voiceSelect = form.elements["voices"];
+var slider = document.querySelector('input[type="range"]');
+var sliVal = slider.value;
 
-  // Some helpful tips:
-  // - Fill the whole Canvas with black first to add borders on non-square images, then draw on top
-  // - Clear the form when a new image is selected
-  // - If you draw the image to canvas here, it will update as soon as a new image is selected
+
+// Fires whenever the img object loads a new image (such as with img.src =)
+img.addEventListener('load', function(){
+  ctx.clearRect(0, 0, 400, 400);
+  ctx.fillStyle = "black";
+  ctx.fillRect(0,0,400,400);
+  ctx.drawImage(img, getDimmensions(400,400,img.width,img.height).startX, getDimmensions(400,400,img.width,img.height).startY,
+                getDimmensions(400,400,img.width,img.height).width, getDimmensions(400,400,img.width,img.height).height);
+});
+
+//Change event
+fileInput.addEventListener('change', function(e) {
+  const url = URL.createObjectURL(e.target.files[0]);
+  img.src = url;
+  img.alt = fileInput.name;
+});
+
+//Submit event
+submit.addEventListener('click', function(e){
+  var txTop = form.elements["textTop"].value;
+  var txBot = form.elements["textBottom"].value;
+  ctx.font = "40px Impact";
+  ctx.textAlign = "center";
+  ctx.fillText(txTop, 200, 50);
+  ctx.fillText(txBot, 200, 400);
+  submit.disabled = true;
+  reset.disabled = false;
+  read.disabled = false;
+  voiceSelect.disabled = false;
+  e.preventDefault();
+});
+
+//Read event and voice list options
+var synth = window.speechSynthesis;
+var voices = [];
+function popVoiceList() {
+  voices = synth.getVoices();
+  for(var i = 0; i < voices.length ; i++) {
+    var option = document.createElement('option');
+    option.textContent = voices[i].name + ' (' + voices[i].lang + ')';
+    if(voices[i].default) {
+      option.textContent += ' -- DEFAULT';
+    }
+    option.setAttribute('data-lang', voices[i].lang);
+    option.setAttribute('data-name', voices[i].name);
+    voiceSelect.appendChild(option);
+  }
+}
+
+popVoiceList();
+if (speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = popVoiceList;
+}
+
+read.addEventListener('click', function(e) {
+  e.preventDefault();
+  var txTop = form.elements["textTop"].value;
+  var txBot = form.elements["textBottom"].value;
+  var top = new SpeechSynthesisUtterance(txTop);
+  var bot = new SpeechSynthesisUtterance(txBot);
+  var selectedOption = voiceSelect.selectedOptions[0].getAttribute('data-name');
+  for(var i = 0; i < voices.length ; i++) {
+    if(voices[i].name === selectedOption) {
+      top.voice = voices[i];
+      bot.voice = voices[i];
+    }
+  }
+  sliVal = slider.value;
+  top.volume = sliVal/100;
+  bot.volume = sliVal/100;
+  synth.speak(top);
+  synth.speak(bot);
+});
+
+//Slider control
+slider.addEventListener('input', function(e){
+  sliVal = slider.value;
+  if(sliVal == 0){
+    document.querySelector("div>img").src = "icons/volume-level-0.svg";
+    document.querySelector("div>img").alt = "Volume Level 0";
+  } else if (sliVal < 34){
+    document.querySelector("div>img").src = "icons/volume-level-1.svg";
+    document.querySelector("div>img").alt = "Volume Level 1";
+  } else if (sliVal < 67){
+    document.querySelector("div>img").src = "icons/volume-level-2.svg";
+    document.querySelector("div>img").alt = "Volume Level 2";
+  } else {
+    document.querySelector("div>img").src = "icons/volume-level-3.svg";
+    document.querySelector("div>img").alt = "Volume Level 3";
+  }
+});
+
+//Clear event
+reset.addEventListener('click', function(e){
+  ctx.clearRect(0,0,400,400);
+  reset.disabled = true;
+  read.disabled = true;
+  voiceSelect.disabled = true;
+  submit.disabled = false;
+  e.preventDefault();
 });
 
 /**
